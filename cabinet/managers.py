@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.contrib.auth.base_user import BaseUserManager
 
 
@@ -13,7 +15,8 @@ class UserManager(BaseUserManager):
         if not phone_number:
             raise ValueError("The phone number must be provided")
         user = self.model(phone_number=phone_number)
-        user.password = user.set_password(password)
+        user.username = f"admin {datetime.now()}"
+        user.set_password(password)
         user.is_staff = True
         user.is_superuser = True
         user.is_active = True
