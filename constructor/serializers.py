@@ -30,7 +30,7 @@ class TextBlockSerializer(BlockSerializer):
 
     class Meta:
         model = TextBlock
-        fields = BlockSerializer.Meta.fields + ['title', 'content']
+        fields = BlockSerializer.Meta.fields + ['content']
 
 
 class ImageBlockSerializer(BlockSerializer):
@@ -38,7 +38,7 @@ class ImageBlockSerializer(BlockSerializer):
 
     class Meta:
         model = ImageBlock
-        fields = BlockSerializer.Meta.fields + ['image', 'caption']
+        fields = BlockSerializer.Meta.fields + ['image']
 
 
 class VideoBlockSerializer(BlockSerializer):

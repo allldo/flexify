@@ -25,6 +25,10 @@ class RegisterSerializer(Serializer):
         return value
 
 
+class LoginSerializer(Serializer):
+    phone_number = CharField(max_length=15)
+
+
 class ActivationCodeSerializer(Serializer):
     phone_number = CharField(max_length=15)
     code = CharField(max_length=4)

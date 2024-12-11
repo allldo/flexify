@@ -34,22 +34,22 @@ class Block(Model):
     block_type = ForeignKey(BlockType, on_delete=CASCADE, related_name='blocks')
     order = PositiveIntegerField(default=0)
     created_at = DateTimeField(auto_now_add=True)
+    class_of_block = CharField(max_length=350, null=True, blank=True)
 
     class Meta:
-        abstract = True
         ordering = ['order']
 
 
 class TextBlock(Block):
     """Текстовый блок"""
-    title = CharField(max_length=255)
+    # title = CharField(max_length=255)
     content = TextField()
 
 
 class ImageBlock(Block):
     """Блок с изображением"""
     image = ImageField(upload_to='image_blocks/')
-    caption = CharField(max_length=255, blank=True)
+    # caption = CharField(max_length=255, null, blank=True)
 
 
 class VideoBlock(Block):
@@ -58,5 +58,37 @@ class VideoBlock(Block):
     title = CharField(max_length=255, blank=True)
 
 
-# Модель профиля пользователя для связи с тарифным планом
+class GifBlock(Block):
+    image = ImageField(upload_to='gif_blocks/')
 
+
+class Socials(Block):
+    pass
+
+
+class Profile(Block):
+    pass
+
+
+class Faq(Block):
+    pass
+
+
+class Product(Block):
+    pass
+
+
+class Link(Block):
+    pass
+
+
+class Quote(Block):
+    pass
+
+
+class Contacts(Block):
+    pass
+
+
+class Delimiter(Block):
+    pass

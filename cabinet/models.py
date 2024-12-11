@@ -1,14 +1,17 @@
 from django.contrib.auth.models import AbstractUser
-from django.db.models import Model, OneToOneField, CASCADE, SET_NULL, DateField, ForeignKey, BooleanField
-from rest_framework.fields import CharField
+from django.db.models import Model, OneToOneField, CASCADE, SET_NULL, DateField, ForeignKey, BooleanField, CharField
 
+from cabinet.managers import UserManager
 from cabinet.service import generate_code
 from sales.models import SubscriptionPlan
 
 
 class CustomUser(AbstractUser):
-    phone_number = CharField(max_length=30)
+    phone_number = CharField(max_length=30, unique=True)
+    objects = UserManager()
+    REQUIRED_FIELDS = []
 
+    USERNAME_FIELD = 'phone_number'
 
 class Profile(Model):
     user = OneToOneField(CustomUser, on_delete=CASCADE, related_name='profile')
