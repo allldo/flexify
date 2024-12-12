@@ -1,24 +1,15 @@
+from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import status, viewsets
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 
-from .models import CustomSite, BlockType, TextBlock, ImageBlock, VideoBlock
+from .models import CustomSite, Block
 from .serializers import (
-    CustomSiteSerializer,
-    TextBlockSerializer,
-    ImageBlockSerializer,
-    VideoBlockSerializer, BlockTypeSerializer
+    CustomSiteSerializer, BlockSerializer
 )
-
-
-
-
-class BlockTypeViewSet(viewsets.ReadOnlyModelViewSet):
-    """Представление для типов блоков"""
-    queryset = BlockType.objects.all()
-    serializer_class = BlockTypeSerializer
-
 
 
 class CustomSiteViewSet(viewsets.ModelViewSet):
@@ -26,6 +17,7 @@ class CustomSiteViewSet(viewsets.ModelViewSet):
     queryset = CustomSite.objects.all()
     serializer_class = CustomSiteSerializer
     permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
 
     def perform_create(self, serializer):
         """При создании нового сайта привязываем его к пользователю"""
@@ -53,32 +45,6 @@ class TemplateCustomSiteView(APIView):
         return Response({"detail": "Site ID is required."}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class TextBlockViewSet(viewsets.ModelViewSet):
-    """Представление для текстовых блоков"""
-    queryset = TextBlock.objects.all()
-    serializer_class = TextBlockSerializer
-    permission_classes = [IsAuthenticated]
-
-    def perform_create(self, serializer):
-        """При создании блока привязываем его к пользователю"""
-        # Вы можете добавить дополнительную логику для блоков, например, привязку к сайту
-        serializer.save()
-
-
-class ImageBlockViewSet(viewsets.ModelViewSet):
-    """Представление для блоков с изображениями"""
-    queryset = ImageBlock.objects.all()
-    serializer_class = ImageBlockSerializer
-    permission_classes = [IsAuthenticated]
-
-
-class VideoBlockViewSet(viewsets.ModelViewSet):
-    """Представление для видео блоков"""
-    queryset = VideoBlock.objects.all()
-    serializer_class = VideoBlockSerializer
-    permission_classes = [IsAuthenticated]
-
-
 class CustomSiteCopyView(APIView):
     """Представление для копирования кастомного сайта"""
 
@@ -94,3 +60,50 @@ class CustomSiteCopyView(APIView):
             # Можно добавить логику для копирования всех блоков (это будет сделано в методах create_block для каждого типа блока)
             return Response(CustomSiteSerializer(site_copy).data, status=status.HTTP_201_CREATED)
         return Response({"detail": "Site ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+class BlockView(APIView):
+    @extend_schema(
+        request=BlockSerializer,
+        responses={201: BlockSerializer},
+        description="Добавление блока"
+    )
+    def post(self, request, site_id):
+        site = get_object_or_404(CustomSite, id=site_id)
+        serializer = BlockSerializer(data=request.data)
+        if serializer.is_valid():
+            block = serializer.save()
+            site.blocks.add(block)
+            return Response({"detail": "Block added successfully"}, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @extend_schema(
+        request=BlockSerializer,
+        responses={200: BlockSerializer},
+        description="Редактирование блока"
+    )
+    def patch(self, request, site_id, block_id):
+        site = get_object_or_404(CustomSite, id=site_id)
+        block = get_object_or_404(Block, id=block_id, custom_sites=site)
+
+        serializer = BlockSerializer(block, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"detail": "Block updated successfully", "block": serializer.data},
+                            status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+class DeleteBlockView(APIView):
+    def delete(self, request, site_id, block_id):
+        site = get_object_or_404(CustomSite, id=site_id)
+        block = get_object_or_404(Block, id=block_id, custom_sites=site)
+
+        block.delete()
+
+        return Response({"detail": "Block deleted successfully"}, status=status.HTTP_204_NO_CONTENT)

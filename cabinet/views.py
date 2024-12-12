@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 from cabinet.models import Profile, ActivationCode, CustomUser
 from cabinet.serializers import ProfileSerializer, ActivationCodeSerializer, RegisterSerializer, LoginSerializer
 from cabinet.service import generate_code
+from constructor.models import CustomSite
 
 
 class ProfileView(APIView):
@@ -38,7 +39,11 @@ class RegisterView(APIView):
         print(serializer)
         if serializer.is_valid():
             phone_number = serializer.validated_data['phone_number']
-            user = CustomUser.objects.create_user(phone_number=phone_number)
+            try:
+                user =CustomUser.objects.get(phone_number=phone_number)
+            except Exception:
+                user = CustomUser.objects.create_user(phone_number=phone_number)
+            token, created = Token.objects.get_or_create(user=user)
             # Генерация кода и отправка
             # code = generate_code()
             # activation_code = ActivationCode.objects.create(phone_number=phone_number, code=code)
@@ -51,8 +56,7 @@ class RegisterView(APIView):
             #     [phone_number],  # Здесь можно заменить на SMS API
             #     fail_silently=False,
             # )
-            login(request, user)
-            return Response({"message": "Код отправлен на ваш номер телефона."}, status=status.HTTP_200_OK)
+            return Response({"token": token.key}, status=status.HTTP_200_OK)
             # return Response({"message": "Код отправлен на ваш номер телефона."}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

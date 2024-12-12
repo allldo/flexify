@@ -1,3 +1,6 @@
 from django.contrib import admin
 
-# Register your models here.
+from constructor.models import  CustomSite, Block
+
+admin.site.register(CustomSite)
+admin.site.register(Block)

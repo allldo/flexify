@@ -1,75 +1,42 @@
 from rest_framework import serializers
+from rest_framework.serializers import ModelSerializer
+
 from .models import (
-    BlockType,
-    CustomSite,
-    TextBlock,
-    ImageBlock,
-    VideoBlock,
+    CustomSite, Block,
 )
-
-class BlockTypeSerializer(serializers.ModelSerializer):
-    """Сериализатор для типов блоков"""
-
-    class Meta:
-        model = BlockType
-        fields = ['id', 'name', 'description']
-
-
-
 class BlockSerializer(serializers.ModelSerializer):
-    """Базовый сериализатор для блоков"""
-    block_type = BlockTypeSerializer(read_only=True)
-
+    images = serializers.ListField(
+        child=serializers.ImageField(),
+        write_only=True,
+        required=False
+    )
     class Meta:
-        model = None  # Устанавливается в наследниках
-        fields = ['id', 'block_type', 'order', 'created_at']
+        model = Block
+        fields = ['id', 'type', 'order', 'data', 'created_at', 'images']
 
+    def validate(self, attrs):
+        block_type = attrs.get('type')
+        data = attrs.get('data', {})
+        images = attrs.get('images', [])
 
-class TextBlockSerializer(BlockSerializer):
-    """Сериализатор для текстовых блоков"""
+        if block_type == 'image' and not images:
+            raise serializers.ValidationError({"images": "At least one image is required for image blocks."})
 
-    class Meta:
-        model = TextBlock
-        fields = BlockSerializer.Meta.fields + ['content']
+        return attrs
 
+    def create(self, validated_data):
+        images = validated_data.pop('images', [])
+        data = validated_data.get('data', {})
 
-class ImageBlockSerializer(BlockSerializer):
-    """Сериализатор для блоков с изображениями"""
+        if images:
+            data['image_urls'] = [image.url for image in images]
+            validated_data['data'] = data
 
-    class Meta:
-        model = ImageBlock
-        fields = BlockSerializer.Meta.fields + ['image']
-
-
-class VideoBlockSerializer(BlockSerializer):
-    """Сериализатор для блоков с видео"""
-
-    class Meta:
-        model = VideoBlock
-        fields = BlockSerializer.Meta.fields + ['video_url', 'title']
-
+        return super().create(validated_data)
 
 class CustomSiteSerializer(serializers.ModelSerializer):
-    """Сериализатор для мини-сайтов"""
-    blocks = serializers.SerializerMethodField()
-    user = serializers.StringRelatedField()
+    blocks = BlockSerializer(many=True)
 
     class Meta:
         model = CustomSite
         fields = ['id', 'user', 'name', 'blocks', 'is_template', 'created_at']
-
-    def get_blocks(self, obj):
-        """Собирает все блоки сайта и сериализует их"""
-        block_serializers = {
-            'TextBlock': TextBlockSerializer,
-            'ImageBlock': ImageBlockSerializer,
-            'VideoBlock': VideoBlockSerializer
-        }
-        serialized_blocks = []
-        for block in obj.blocks.all():
-            block_type = block.block_type.name
-            serializer_class = block_serializers.get(block_type)
-            if serializer_class:
-                serializer = serializer_class(block)
-                serialized_blocks.append(serializer.data)
-        return serialized_blocks
