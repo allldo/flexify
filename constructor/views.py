@@ -8,7 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from .models import CustomSite, Block
 from .serializers import (
-    CustomSiteSerializer, BlockSerializer, CustomSiteFullSerializer
+    CustomSiteSerializer, BlockSerializer, CustomSiteFullSerializer, BlockOrderDictSerializer
 )
 
 
@@ -103,3 +103,24 @@ class DeleteBlockView(APIView):
         block.delete()
 
         return Response({"detail": "Block deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+
+
+class ReArrangeBlocksView(APIView):
+    @extend_schema(
+        request=BlockOrderDictSerializer,
+        responses={201: BlockSerializer},
+        description="Добавление блока"
+    )
+    def post(self, request):
+        serializer = BlockOrderDictSerializer(data=request.data)
+
+        if serializer.is_valid():
+            updated_blocks = serializer.update_block_orders()
+            return Response(
+                {
+                    "detail": "Orders updated successfully",
+                    "updated_blocks": {block.id: block.order for block in updated_blocks},
+                },
+                status=status.HTTP_200_OK
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -67,3 +67,27 @@ class CustomSiteFullSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomSite
         fields = ['id', 'name', 'blocks','is_template', 'created_at']
+
+
+class BlockOrderDictSerializer(serializers.Serializer):
+    blocks = serializers.DictField(
+        child=serializers.IntegerField(),
+        allow_empty=False,
+        help_text="Словарь, где ключ — ID блока, а значение — новый порядок."
+    )
+
+    def validate_blocks(self, value):
+        invalid_ids = [block_id for block_id in value.keys() if not Block.objects.filter(id=block_id).exists()]
+        if invalid_ids:
+            raise serializers.ValidationError(f"Блоки с ID {invalid_ids} не существуют.")
+        return value
+
+    def update_block_orders(self):
+        validated_data = self.validated_data["blocks"]
+        updated_blocks = []
+        for block_id, order in validated_data.items():
+            block = Block.objects.get(id=block_id)
+            block.order = order
+            block.save()
+            updated_blocks.append(block)
+        return updated_blocks
