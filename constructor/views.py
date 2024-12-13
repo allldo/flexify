@@ -8,36 +8,35 @@ from rest_framework.permissions import IsAuthenticated
 
 from .models import CustomSite, Block
 from .serializers import (
-    CustomSiteSerializer, BlockSerializer
+    CustomSiteSerializer, BlockSerializer, CustomSiteFullSerializer
 )
 
 
 class CustomSiteViewSet(viewsets.ModelViewSet):
-    """Представление для кастомных сайтов"""
     queryset = CustomSite.objects.all()
     serializer_class = CustomSiteSerializer
     permission_classes = [IsAuthenticated]
     authentication_classes = [TokenAuthentication]
 
     def perform_create(self, serializer):
-        """При создании нового сайта привязываем его к пользователю"""
         serializer.save(user=self.request.user)
 
     def get_queryset(self):
-        """Фильтрация сайтов по пользователю"""
         return CustomSite.objects.filter(user=self.request.user)
 
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = CustomSiteFullSerializer(instance)
+        return Response(serializer.data)
 
 class TemplateCustomSiteView(APIView):
-    """Представление для шаблонов сайтов"""
 
     def post(self, request, *args, **kwargs):
         site_id = request.data.get('site_id')
         if site_id:
-            # Копируем сайт по id и помечаем как шаблон
             site = CustomSite.objects.get(id=site_id)
             site_template = site
-            site_template.pk = None  # Создаем новый объект с тем же содержанием
+            site_template.pk = None
             site_template.is_template = True
             site_template.save()
 
@@ -46,18 +45,15 @@ class TemplateCustomSiteView(APIView):
 
 
 class CustomSiteCopyView(APIView):
-    """Представление для копирования кастомного сайта"""
 
     def post(self, request, *args, **kwargs):
         site_id = request.data.get('site_id')
         if site_id:
-            # Копируем сайт по id
             site = CustomSite.objects.get(id=site_id)
             site_copy = site
-            site_copy.pk = None  # Создаем новый объект с тем же содержанием
+            site_copy.pk = None
             site_copy.save()
 
-            # Можно добавить логику для копирования всех блоков (это будет сделано в методах create_block для каждого типа блока)
             return Response(CustomSiteSerializer(site_copy).data, status=status.HTTP_201_CREATED)
         return Response({"detail": "Site ID is required."}, status=status.HTTP_400_BAD_REQUEST)
 

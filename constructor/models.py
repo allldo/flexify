@@ -5,7 +5,6 @@ from cabinet.models import CustomUser
 
 
 class CustomSite(Model):
-    """Мини-сайт пользователя"""
     user = ForeignKey(CustomUser, on_delete=CASCADE, related_name='custom_sites')
     name = CharField(max_length=155)
     blocks = ManyToManyField('Block', related_name='custom_sites', blank=True)
@@ -17,7 +16,6 @@ class CustomSite(Model):
 
 
 class Block(Model):
-    """Блок"""
     BLOCK_TYPES = (
         ('text', 'Text Block'),
         ('image', 'Image Block'),
