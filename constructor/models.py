@@ -19,6 +19,9 @@ class Block(Model):
     BLOCK_TYPES = (
         ('text', 'Text Block'),
         ('image', 'Image Block'),
+        ('gif', 'Gif Block'),
+        ('qanda', 'QandA Block'),
+        ('social', 'Social Block'),
         ('video', 'Video Block'),
         ('profile', 'Profile Block'),
         ('product', 'Product Block'),
