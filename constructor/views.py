@@ -75,12 +75,23 @@ class BlockView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+class BlockViewSet(viewsets.ViewSet):
+
+    def retrieve(self, request, site_id, block_id):
+        site = get_object_or_404(CustomSite, id=site_id)
+        block = get_object_or_404(Block, id=block_id, custom_sites=site)
+
+        serializer = BlockSerializer(block)
+
+        return Response({"block": serializer.data}, status=status.HTTP_200_OK)
+
     @extend_schema(
         request=BlockSerializer,
         responses={200: BlockSerializer},
         description="Редактирование блока"
     )
-    def patch(self, request, site_id, block_id):
+    def partial_update(self, request, site_id, block_id):
         site = get_object_or_404(CustomSite, id=site_id)
         block = get_object_or_404(Block, id=block_id, custom_sites=site)
 
@@ -94,15 +105,18 @@ class BlockView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
-class DeleteBlockView(APIView):
-    def delete(self, request, site_id, block_id):
+    @extend_schema(
+        responses={204: None},
+        description="Удаление блока по ID"
+    )
+    def destroy(self, site_id, block_id):
         site = get_object_or_404(CustomSite, id=site_id)
         block = get_object_or_404(Block, id=block_id, custom_sites=site)
 
         block.delete()
 
         return Response({"detail": "Block deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+
 
 
 class ReArrangeBlocksView(APIView):
