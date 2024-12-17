@@ -78,12 +78,9 @@ class BlockView(APIView):
 
 class BlockViewSet(viewsets.ViewSet):
 
-    def retrieve(self, request, site_id, block_id):
-        site = get_object_or_404(CustomSite, id=site_id)
-        block = get_object_or_404(Block, id=block_id, custom_sites=site)
-
+    def retrieve(self, request, pk):
+        block = get_object_or_404(Block, id=pk)
         serializer = BlockSerializer(block)
-
         return Response({"block": serializer.data}, status=status.HTTP_200_OK)
 
     @extend_schema(
@@ -91,12 +88,9 @@ class BlockViewSet(viewsets.ViewSet):
         responses={200: BlockSerializer},
         description="Редактирование блока"
     )
-    def partial_update(self, request, site_id, block_id):
-        site = get_object_or_404(CustomSite, id=site_id)
-        block = get_object_or_404(Block, id=block_id, custom_sites=site)
-
+    def partial_update(self, request, pk):
+        block = get_object_or_404(Block, id=pk)
         serializer = BlockSerializer(block, data=request.data, partial=True)
-
         if serializer.is_valid():
             serializer.save()
             return Response({"detail": "Block updated successfully", "block": serializer.data},
@@ -109,12 +103,9 @@ class BlockViewSet(viewsets.ViewSet):
         responses={204: None},
         description="Удаление блока по ID"
     )
-    def destroy(self, site_id, block_id):
-        site = get_object_or_404(CustomSite, id=site_id)
-        block = get_object_or_404(Block, id=block_id, custom_sites=site)
-
+    def destroy(self, pk):
+        block = get_object_or_404(Block, id=pk)
         block.delete()
-
         return Response({"detail": "Block deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
 
 
