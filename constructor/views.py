@@ -103,7 +103,7 @@ class BlockViewSet(viewsets.ViewSet):
         responses={204: None},
         description="Удаление блока по ID"
     )
-    def destroy(self, pk):
+    def destroy(self, request, pk):
         block = get_object_or_404(Block, id=pk)
         block.delete()
         return Response({"detail": "Block deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
