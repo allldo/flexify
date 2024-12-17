@@ -2,6 +2,7 @@ from uuid import uuid4
 
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
+from django.conf import settings
 from rest_framework import serializers
 import base64
 from .models import (
@@ -46,7 +47,7 @@ class BlockSerializer(serializers.ModelSerializer):
             for image in images:
                 filename = f"blocks/{uuid4().hex}.jpg"  # Уникальное имя файла
                 saved_image_path = default_storage.save(filename, ContentFile(image.read()))  # Сохраняем файл
-                image_urls.append(default_storage.url(saved_image_path))  # Получаем URL сохраненного файла
+                image_urls.append(f"{settings.BACKEND_URL}{default_storage.url(saved_image_path)}")  # Получаем URL сохраненного файла
 
             data['image_urls'] = image_urls
             validated_data['data'] = data

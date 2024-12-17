@@ -141,7 +141,7 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
+BACKEND_URL = "127.0.0.1:8000"
 try:
     from .local_settings import *
 except Exception as e:
