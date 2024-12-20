@@ -54,6 +54,38 @@ class BlockSerializer(serializers.ModelSerializer):
 
         return super().create(validated_data)
 
+    def update(self, instance, validated_data):
+        images = validated_data.pop('images', None)  # Получаем изображения, если они есть
+        data = validated_data.get('data', {})  # Получаем существующие данные
+
+        # Если изображения переданы, обрабатываем их
+        if images is not None:
+            image_urls = []
+            for image in images:
+                filename = f"blocks/{uuid4().hex}.jpg"  # Уникальное имя файла
+                saved_image_path = default_storage.save(filename, ContentFile(image.read()))  # Сохраняем файл
+                image_urls.append(
+                    f"{settings.BACKEND_URL}{default_storage.url(saved_image_path)}")  # Получаем URL сохраненного файла
+
+            # Обновляем или добавляем изображения в поле `data`
+            data['image_urls'] = image_urls
+        else:
+            # Если изображения не переданы, сохраняем существующие
+            if 'image_urls' in instance.data:
+                data['image_urls'] = instance.data['image_urls']
+
+        validated_data['data'] = data  # Обновляем `validated_data` для сохранения
+
+        # Обновляем объект с новыми данными
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        # Сохраняем объект
+        instance.save()
+        return instance
+
+
+
 class CustomSiteSerializer(serializers.ModelSerializer):
     # blocks = BlockSerializer(many=True)
 
