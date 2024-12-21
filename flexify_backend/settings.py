@@ -18,6 +18,8 @@ DEBUG = env('DEBUG')
 
 ALLOWED_HOSTS = ["*"]
 CORS_ALLOW_ALL_ORIGINS = True
+CSRF_TRUSTED_ORIGINS = ['https://backend.flexify.kz', 'https://flexify.kz']
+CSRF_COOKIE_DOMAIN = ".flexify.kz"
 CORS_ALLOW_CREDENTIALS = True
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_HEADERS = list(default_headers) + [
