@@ -1,3 +1,6 @@
+import os
+
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import status, viewsets
@@ -129,3 +132,61 @@ class ReArrangeBlocksView(APIView):
                 status=status.HTTP_200_OK
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PublicSiteView(APIView):
+    def get(self, request, site_name):
+        # фильтр для опубликованных
+        custom_site = CustomSite.objects.filter(name=site_name).first()
+        if custom_site:
+            return Response(CustomSiteFullSerializer(instance=custom_site).data, status=200)
+        return Response(data={"message": "site wasn't found"}, status=404)
+
+
+class ChunkedUploadView(APIView):
+    def post(self, request):
+        upload_id = request.POST.get("upload_id")
+        chunk_number = request.POST.get("chunk_number")
+        chunk = request.FILES.get("chunk")
+
+        if not upload_id or chunk_number is None or not chunk:
+            return Response({"error": "Invalid data"}, status=400)
+
+        upload_dir = os.path.join(settings.MEDIA_ROOT, "uploads", upload_id)
+        os.makedirs(upload_dir, exist_ok=True)
+
+        chunk_path = os.path.join(upload_dir, f"chunk_{chunk_number}")
+        with open(chunk_path, "wb") as f:
+            for chunk_part in chunk.chunks():
+                f.write(chunk_part)
+
+        return Response({"message": f"Chunk {chunk_number} uploaded successfully."})
+
+
+class AssembleChunksView(APIView):
+    def post(self, request):
+        upload_id = request.POST.get("upload_id")
+        output_filename = request.POST.get("output_filename")
+
+        if not upload_id or not output_filename:
+            return Response({"error": "Invalid data"}, status=400)
+
+        upload_dir = os.path.join(settings.MEDIA_ROOT, "uploads", upload_id)
+        if not os.path.exists(upload_dir):
+            return Response({"error": "Upload ID not found"}, status=404)
+
+        output_path = os.path.join(settings.MEDIA_ROOT, "final", output_filename)
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+        with open(output_path, "wb") as final_file:
+            for chunk_file in sorted(os.listdir(upload_dir), key=lambda x: int(x.split("_")[1])):
+                chunk_path = os.path.join(upload_dir, chunk_file)
+                with open(chunk_path, "rb") as cf:
+                    final_file.write(cf.read())
+
+        # Удаляем временные файлы
+        for chunk_file in os.listdir(upload_dir):
+            os.remove(os.path.join(upload_dir, chunk_file))
+        os.rmdir(upload_dir)
+
+        return Response({"message": "File assembled successfully.", "file_url": output_path})

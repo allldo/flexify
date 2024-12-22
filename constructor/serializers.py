@@ -124,3 +124,6 @@ class BlockOrderDictSerializer(serializers.Serializer):
             block.save()
             updated_blocks.append(block)
         return updated_blocks
+
+
+# TODO  serializer for new views
