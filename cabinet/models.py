@@ -8,6 +8,7 @@ from sales.models import SubscriptionPlan
 
 class CustomUser(AbstractUser):
     phone_number = CharField(max_length=30, unique=True)
+    username = None
     objects = UserManager()
     REQUIRED_FIELDS = []
 
