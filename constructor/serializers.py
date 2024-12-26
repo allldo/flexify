@@ -39,7 +39,7 @@ class BlockSerializer(serializers.ModelSerializer):
         if images:
             image_urls = []
             for image in images:
-                path = default_storage.save(f"block_images/{image.name}", image)
+                path = default_storage.save(f"media/block_images/{image.name}", image)
                 image_urls.append(path)
 
             validated_data['data'] = {**validated_data.get('data', {}), 'image_urls': image_urls}
