@@ -1,25 +1,17 @@
-from uuid import uuid4
+import re
 
-from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
-from django.conf import settings
 from rest_framework import serializers
-import base64
+from rest_framework.fields import ImageField
+
 from .models import (
     CustomSite, Block,
 )
 
-class Base64ImageField(serializers.ImageField):
-    def to_internal_value(self, data):
-        if isinstance(data, str) and data.startswith('data:image'):
-            format, imgstr = data.split(';base64,')
-            ext = format.split('/')[-1]
-            data = ContentFile(base64.b64decode(imgstr), name=f'temp.{ext}')
-        return super().to_internal_value(data)
 
 class BlockSerializer(serializers.ModelSerializer):
     images = serializers.ListField(
-        child=Base64ImageField(),
+        child=ImageField(),
         write_only=True,
         required=False
     )
@@ -27,63 +19,34 @@ class BlockSerializer(serializers.ModelSerializer):
         model = Block
         fields = ['id', 'type', 'order', 'data', 'created_at', 'images']
 
+
     def validate(self, attrs):
         block_type = attrs.get('type')
         data = attrs.get('data', {})
         images = attrs.get('images', [])
 
+        if block_type not in ['image', 'text', 'video']:
+            raise serializers.ValidationError({"type": "Invalid block type."})
+
         if block_type == 'image' and not images:
             raise serializers.ValidationError({"images": "At least one image is required for image blocks."})
-
         return attrs
 
     def create(self, validated_data):
         images = validated_data.pop('images', [])
-        data = validated_data.get('data', {})
+        block = super().create(validated_data)
 
-        # Сохраняем изображения и получаем их URL
         if images:
             image_urls = []
             for image in images:
-                filename = f"blocks/{uuid4().hex}.jpg"  # Уникальное имя файла
-                saved_image_path = default_storage.save(filename, ContentFile(image.read()))  # Сохраняем файл
-                image_urls.append(f"{settings.BACKEND_URL}{default_storage.url(saved_image_path)}")  # Получаем URL сохраненного файла
+                path = default_storage.save(f"block_images/{image.name}", image)
+                image_urls.append(path)
 
-            data['image_urls'] = image_urls
-            validated_data['data'] = data
+            validated_data['data'] = {**validated_data.get('data', {}), 'image_urls': image_urls}
+            block.data = validated_data['data']
+            block.save()
 
-        return super().create(validated_data)
-
-    def update(self, instance, validated_data):
-        images = validated_data.pop('images', None)  # Получаем изображения, если они есть
-        data = validated_data.get('data', {})  # Получаем существующие данные
-
-        # Если изображения переданы, обрабатываем их
-        if images is not None:
-            image_urls = []
-            for image in images:
-                filename = f"blocks/{uuid4().hex}.jpg"  # Уникальное имя файла
-                saved_image_path = default_storage.save(filename, ContentFile(image.read()))  # Сохраняем файл
-                image_urls.append(
-                    f"{settings.BACKEND_URL}{default_storage.url(saved_image_path)}")  # Получаем URL сохраненного файла
-
-            # Обновляем или добавляем изображения в поле `data`
-            data['image_urls'] = image_urls
-        else:
-            # Если изображения не переданы, сохраняем существующие
-            if 'image_urls' in instance.data:
-                data['image_urls'] = instance.data['image_urls']
-
-        validated_data['data'] = data  # Обновляем `validated_data` для сохранения
-
-        # Обновляем объект с новыми данными
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-
-        # Сохраняем объект
-        instance.save()
-        return instance
-
+        return block
 
 
 class CustomSiteSerializer(serializers.ModelSerializer):
@@ -92,6 +55,13 @@ class CustomSiteSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomSite
         fields = ['id', 'name', 'is_template', 'created_at']
+
+    def validate_name(self, value):
+        name = re.sub(r'[^a-zA-Zа-яА-Я0-9-]', '-', value)
+        name = re.sub(r'-+', '-', name).strip('-')
+        if CustomSite.objects.filter(name=name).exists():
+            raise serializers.ValidationError("Сайт с таким именем уже существует")
+        return name
 
 
 class CustomSiteFullSerializer(serializers.ModelSerializer):
@@ -125,5 +95,3 @@ class BlockOrderDictSerializer(serializers.Serializer):
             updated_blocks.append(block)
         return updated_blocks
 
-
-# TODO  serializer for new views
