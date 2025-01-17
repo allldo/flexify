@@ -26,8 +26,8 @@ class BlockSerializer(serializers.ModelSerializer):
         data = attrs.get('data', {})
         images = attrs.get('images', [])
 
-        if block_type not in ['image', 'profile', 'gif']:
-            raise serializers.ValidationError({"type": "Invalid block type."})
+        # if block_type not in ['image', 'profile', 'gif'] and data.:
+        #     raise serializers.ValidationError({"type": "Invalid block type."})
 
         if block_type == 'image' and not images:
             raise serializers.ValidationError({"images": "At least one image is required for image blocks."})
