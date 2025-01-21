@@ -29,6 +29,8 @@ class Block(Model):
         ('quote', 'Quote Block'),
         ('contacts', 'Contacts Block'),
         ('delimiter', 'Delimiter Block'),
+        ('gallery', 'Gallery Block'),
+        ('mix', 'Mix block')
     )
 
     type = CharField(max_length=50, choices=BLOCK_TYPES, null=True, blank=True)
@@ -38,3 +40,9 @@ class Block(Model):
 
     class Meta:
         ordering = ['order']
+
+    def get_owner(self):
+        sites = self.custom_sites.all()
+        if sites.exists():
+            return sites.first().user
+        return None

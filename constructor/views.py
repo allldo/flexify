@@ -6,11 +6,14 @@ from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import status, viewsets
 from rest_framework.authentication import TokenAuthentication
+from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 
 from .models import CustomSite, Block
+from .permissions import CustomPermission
 from .serializers import (
     CustomSiteSerializer, BlockSerializer, CustomSiteFullSerializer, BlockOrderDictSerializer
 )
@@ -80,6 +83,8 @@ class BlockView(APIView):
 
 
 class BlockViewSet(viewsets.ViewSet):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [CustomPermission]
 
     def retrieve(self, request, pk):
         block = get_object_or_404(Block, id=pk)
