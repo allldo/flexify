@@ -13,7 +13,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 
 from .models import CustomSite, Block
-from .permissions import CustomPermission
+from .permissions import CustomPermission, IsSiteOwnerPermission
 from .serializers import (
     CustomSiteSerializer, BlockSerializer, CustomSiteFullSerializer, BlockOrderDictSerializer
 )
@@ -66,6 +66,9 @@ class CustomSiteCopyView(APIView):
 
 
 class BlockView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsSiteOwnerPermission]
+
     @extend_schema(
         request=BlockSerializer,
         responses={201: BlockSerializer},
