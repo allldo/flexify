@@ -32,7 +32,7 @@ def generate_and_save_qr_code(custom_site):
     buffer.seek(0)
 
     # Создаем имя файла для QR-кода
-    filename = f"qr_code_{custom_site.id}_{custom_site.name}.png"
+    filename = f"qr_code_{custom_site.id}.png"
 
     # Сохраняем QR-код в поле модели
     custom_site.qr_code.save(filename, ContentFile(buffer.getvalue()), save=True)
