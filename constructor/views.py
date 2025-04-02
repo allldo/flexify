@@ -26,7 +26,7 @@ class CustomSiteViewSet(viewsets.ModelViewSet):
     authentication_classes = [TokenAuthentication]
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        serializer.save(user=self.request.user, is_published=True)
 
     def get_queryset(self):
         return CustomSite.objects.filter(user=self.request.user)
@@ -40,14 +40,14 @@ class TemplateCustomSiteView(APIView):
 
     def post(self, request, *args, **kwargs):
         site_id = request.data.get('site_id')
-        if site_id:
+        template_id = request.data.get('template_id')
+        if site_id and template_id:
             site = CustomSite.objects.get(id=site_id)
-            site_template = site
-            site_template.pk = None
-            site_template.is_template = True
-            site_template.save()
+            site.template = CustomSite.objects.get(id=template_id)
+            site.save()
+            site.copy_from_template()
 
-            return Response(CustomSiteSerializer(site_template).data, status=status.HTTP_201_CREATED)
+            return Response(CustomSiteSerializer(site).data, status=status.HTTP_201_CREATED)
         return Response({"detail": "Site ID is required."}, status=status.HTTP_400_BAD_REQUEST)
 
 

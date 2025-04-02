@@ -145,6 +145,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 BACKEND_URL = "https://backend.flexify.kz"
+FRONTEND_URL = "https://flexify.kz"
 try:
     from .local_settings import *
 except Exception as e:

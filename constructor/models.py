@@ -1,5 +1,5 @@
 from django.db.models import CharField, ForeignKey, CASCADE, Model, \
-    PositiveIntegerField, DateTimeField, BooleanField, ManyToManyField, JSONField
+    PositiveIntegerField, DateTimeField, BooleanField, ManyToManyField, JSONField, SET_NULL, ImageField
 
 from cabinet.models import CustomUser
 
@@ -10,9 +10,26 @@ class CustomSite(Model):
     blocks = ManyToManyField('Block', related_name='custom_sites', blank=True)
     is_template = BooleanField(default=False, verbose_name='Шаблонный сайт')
     created_at = DateTimeField(auto_now_add=True)
+    template = ForeignKey('self', on_delete=SET_NULL, null=True, blank=True, related_name='derived_sites')
+    qr_code = ImageField(upload_to='qr_codes/', blank=True, null=True, verbose_name='QR код')
+    is_published = BooleanField(default=False)
 
     def __str__(self):
         return self.name
+
+    def copy_from_template(self):
+        """Создает копию блоков из шаблона"""
+        if self.template:
+            self.blocks.set(self.template.blocks.all())
+
+    def save(self, *args, **kwargs):
+        # Сначала сохраняем объект, чтобы получить ID если это новый объект
+        super().save(*args, **kwargs)
+
+        # Генерируем QR-код если его еще нет
+        if not self.qr_code:
+            from constructor.services import generate_and_save_qr_code
+            generate_and_save_qr_code(self)
 
 
 class Block(Model):
@@ -46,3 +63,6 @@ class Block(Model):
         if sites.exists():
             return sites.first().user
         return None
+
+    def __str__(self):
+        return self.type if self.type else 'Block'
