@@ -75,12 +75,12 @@ class LoginSerializer(Serializer):
 class ActivationCodeSerializer(Serializer):
     email = CharField(max_length=255)
     code = CharField(max_length=4)
+    password = CharField(min_length=4, max_length=128)
 
     def validate(self, data):
         email = data.get('email')
         code = data.get('code')
-
-        # Проверка, существует ли код для этого email
+        password = data.get('password')
         activation_code = ActivationCode.objects.filter(email=email, expired=False).first()
         if not activation_code:
             raise ValidationError("Код для этого email не найден.")
@@ -88,5 +88,7 @@ class ActivationCodeSerializer(Serializer):
         # Проверка кода
         if activation_code.get_code != code:
             raise ValidationError("Неверный код.")
+
+        CustomUser.objects.create_user(email=email, password=password, activation_code=activation_code)
 
         return data

@@ -40,12 +40,6 @@ class RegisterView(APIView):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             email = serializer.validated_data['email']
-            password = serializer.validated_data['password']
-
-            user = CustomUser.objects.create_user(
-                email=email,
-                password=password
-            )
 
             code = generate_code()
             activation_code, created = ActivationCode.objects.get_or_create(
@@ -74,33 +68,9 @@ class LoginView(APIView):
     def post(self, request, *args, **kwargs):
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
-            email = serializer.validated_data['email']
-
-            # Получаем пользователя (пароль уже проверен в сериализаторе)
-            user = CustomUser.objects.get(email=email)
-
-            # Генерация кода и отправка на email
-            code = generate_code()
-            activation_code, created = ActivationCode.objects.get_or_create(
-                email=email,
-                defaults={'code': code}
-            )
-
-            if not created:
-                activation_code.code = code
-                activation_code.expired = False
-                activation_code.save()
-
-            # Отправляем код на email
-            send_mail(
-                'Код для входа Flexify',
-                f'Ваш код для входа: {code}',
-                settings.DEFAULT_FROM_EMAIL,
-                [email],
-                fail_silently=False,
-            )
-
-            return Response({"message": "Код отправлен на ваш email."}, status=status.HTTP_200_OK)
+            user = CustomUser.objects.filter(email=serializer.validated_data['email'])
+            token = Token.objects.get_or_create(user=user)
+            return Response({"token": f"{token.key}"}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -122,7 +92,6 @@ class VerifyCodeView(APIView):
 
                 token, created = Token.objects.get_or_create(user=user)
 
-                # Создаем профиль если его нет
                 profile, created = Profile.objects.get_or_create(user=user)
 
                 return Response({"token": token.key}, status=status.HTTP_200_OK)
