@@ -4,17 +4,17 @@ from django.contrib.auth.base_user import BaseUserManager
 
 
 class UserManager(BaseUserManager):
-    def create_user(self, phone_number, **extra_fields):
-        if not phone_number:
-            raise ValueError("The phone number must be provided")
-        user = self.model(phone_number=phone_number, **extra_fields)
+    def create_user(self, email, **extra_fields):
+        if not email:
+            raise ValueError("The email must be provided")
+        user = self.model(email=email, **extra_fields)
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, phone_number, password, **extra_fields):
-        if not phone_number:
-            raise ValueError("The phone number must be provided")
-        user = self.model(phone_number=phone_number)
+    def create_superuser(self, email, password, **extra_fields):
+        if not email:
+            raise ValueError("The email must be provided")
+        user = self.model(email=email)
         user.username = f"admin {datetime.now()}"
         user.set_password(password)
         user.is_staff = True

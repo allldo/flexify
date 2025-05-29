@@ -1,4 +1,6 @@
+from django.conf import settings
 from django.contrib.auth import login
+from django.core.mail import send_mail
 from django.shortcuts import render
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -11,6 +13,7 @@ from cabinet.models import Profile, ActivationCode, CustomUser
 from cabinet.serializers import ProfileSerializer, ActivationCodeSerializer, RegisterSerializer, LoginSerializer
 from cabinet.service import generate_code
 from constructor.models import CustomSite
+from sales.tasks import create_default_trial_subscription
 
 
 class ProfileView(APIView):
@@ -34,30 +37,35 @@ class ProfileView(APIView):
 class RegisterView(APIView):
     @extend_schema(request=RegisterSerializer)
     def post(self, request, *args, **kwargs):
-        # Получаем номер телефона из запроса
         serializer = RegisterSerializer(data=request.data)
-        print(serializer)
         if serializer.is_valid():
-            phone_number = serializer.validated_data['phone_number']
-            try:
-                user =CustomUser.objects.get(phone_number=phone_number)
-            except Exception:
-                user = CustomUser.objects.create_user(phone_number=phone_number)
-            token, created = Token.objects.get_or_create(user=user)
-            # Генерация кода и отправка
-            # code = generate_code()
-            # activation_code = ActivationCode.objects.create(phone_number=phone_number, code=code)
-            # print(code)
-            # Отправляем код на телефон (в данном случае через email, в реальности через SMS API)
-            # send_mail(
-            #     'Ваш код активации',
-            #     f'Ваш код: {code}',
-            #     'from@example.com',  # Замените на ваш email
-            #     [phone_number],  # Здесь можно заменить на SMS API
-            #     fail_silently=False,
-            # )
-            return Response({"token": token.key}, status=status.HTTP_200_OK)
-            # return Response({"message": "Код отправлен на ваш номер телефона."}, status=status.HTTP_200_OK)
+            email = serializer.validated_data['email']
+            password = serializer.validated_data['password']
+
+            user = CustomUser.objects.create_user(
+                email=email,
+                password=password
+            )
+
+            code = generate_code()
+            activation_code, created = ActivationCode.objects.get_or_create(
+                email=email,
+                defaults={'code': code}
+            )
+
+            if not created:
+                activation_code.code = code
+                activation_code.expired = False
+                activation_code.save()
+
+            send_mail(
+                'Подтверждение регистрации Flexify',
+                f'Ваш код подтверждения: {code}',
+                settings.DEFAULT_FROM_EMAIL,
+                [email],
+                fail_silently=False,
+            )
+            return Response({"message": "Код подтверждения отправлен на ваш email."}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -66,23 +74,59 @@ class LoginView(APIView):
     def post(self, request, *args, **kwargs):
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
-            user = CustomUser.objects.get(phone_number=serializer.validated_data['phone_number'])
-            token, created = Token.objects.get_or_create(user=user)
-            return Response({"token": token.key}, status=status.HTTP_200_OK)
-        # Получаем номер телефона и код
-        # serializer = ActivationCodeSerializer(data=request.data)
-        # if serializer.is_valid():
-        #     phone_number = serializer.validated_data['phone_number']
-        #     code = serializer.validated_data['code']
-        #
-        #     # Проверка кода
-        #     activation_code = ActivationCode.objects.filter(phone_number=phone_number, expired=False).first()
-        #     if activation_code.get_code == code:
-        #         # Устанавливаем код как истекший
-        #         activation_code.set_code_expired()
-        #         return Response({"message": "Вы успешно вошли в систему."}, status=status.HTTP_200_OK)
-        #
-        #     return Response({"detail": "Неверный код."}, status=status.HTTP_400_BAD_REQUEST)
+            email = serializer.validated_data['email']
 
-        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        return Response(status=status.HTTP_400_BAD_REQUEST)
+            # Получаем пользователя (пароль уже проверен в сериализаторе)
+            user = CustomUser.objects.get(email=email)
+
+            # Генерация кода и отправка на email
+            code = generate_code()
+            activation_code, created = ActivationCode.objects.get_or_create(
+                email=email,
+                defaults={'code': code}
+            )
+
+            if not created:
+                activation_code.code = code
+                activation_code.expired = False
+                activation_code.save()
+
+            # Отправляем код на email
+            send_mail(
+                'Код для входа Flexify',
+                f'Ваш код для входа: {code}',
+                settings.DEFAULT_FROM_EMAIL,
+                [email],
+                fail_silently=False,
+            )
+
+            return Response({"message": "Код отправлен на ваш email."}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class VerifyCodeView(APIView):
+    """Подтверждение кода и выдача токена"""
+
+    @extend_schema(request=ActivationCodeSerializer)
+    def post(self, request, *args, **kwargs):
+        serializer = ActivationCodeSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            code = serializer.validated_data['code']
+
+            activation_code = ActivationCode.objects.filter(email=email, expired=False).first()
+            if activation_code and activation_code.get_code == code:
+                activation_code.set_code_expired()
+
+                user = CustomUser.objects.get(email=email)
+
+                token, created = Token.objects.get_or_create(user=user)
+
+                # Создаем профиль если его нет
+                profile, created = Profile.objects.get_or_create(user=user)
+
+                return Response({"token": token.key}, status=status.HTTP_200_OK)
+
+            return Response({"detail": "Неверный код."}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

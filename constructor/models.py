@@ -31,6 +31,18 @@ class CustomSite(Model):
             from constructor.services import generate_and_save_qr_code
             generate_and_save_qr_code(self)
 
+    @property
+    def is_available(self):
+        """
+        Проверяет, доступен ли сайт на основе статуса подписки пользователя
+        """
+        try:
+            profile = self.user.profile
+            # Если подписка активна и не истекла, сайт доступен
+            return profile.is_active and not profile.is_subscription_expired
+        except Exception:
+            # Если у пользователя нет профиля или другая ошибка
+            return False
 
 class Block(Model):
     BLOCK_TYPES = (

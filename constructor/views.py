@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 
+from cabinet.models import Profile
 from .models import CustomSite, Block
 from .permissions import CustomPermission, IsSiteOwnerPermission
 from .serializers import (
@@ -26,16 +27,25 @@ class CustomSiteViewSet(viewsets.ModelViewSet):
     authentication_classes = [TokenAuthentication]
 
     def perform_create(self, serializer):
+        # Проверяем, активна ли подписка пользователя
+        profile = Profile.objects.filter(user=self.request.user).first()
+
+        if not profile or not profile.subscription_plan:
+            raise PermissionDenied("У вас нет активной подписки для создания сайтов")
+
+        if profile.is_subscription_expired:
+            raise PermissionDenied("Ваша подписка истекла")
+
+        # Проверяем, не превышено ли максимальное количество сайтов
+        current_sites_count = CustomSite.objects.filter(user=self.request.user).count()
+        max_sites = profile.subscription_plan.max_sites
+
+        if current_sites_count >= max_sites:
+            raise PermissionDenied(
+                f"Вы достигли максимального количества сайтов ({max_sites}) для вашего тарифного плана")
+
+        # Если все проверки пройдены, создаем сайт
         serializer.save(user=self.request.user, is_published=True)
-
-    def get_queryset(self):
-        return CustomSite.objects.filter(user=self.request.user)
-
-    def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = CustomSiteFullSerializer(instance)
-        return Response(serializer.data)
-
 class TemplateCustomSiteView(APIView):
 
     def post(self, request, *args, **kwargs):
@@ -144,6 +154,19 @@ class ReArrangeBlocksView(APIView):
 class PublicSiteView(APIView):
     def get(self, request, site_name):
         custom_site = CustomSite.objects.filter(name=site_name).first()
-        if custom_site:
-            return Response(CustomSiteFullSerializer(instance=custom_site).data, status=200)
-        return Response(data={"message": "site wasn't found"}, status=404)
+
+        if not custom_site:
+            return Response(data={"message": "Сайт не найден"}, status=404)
+
+        # Проверяем, опубликован ли сайт и активна ли подписка
+        if not custom_site.is_published:
+            return Response(data={"message": "Сайт не опубликован"}, status=403)
+
+        # Проверяем доступность сайта (статус подписки)
+        if not custom_site.is_available and not custom_site.is_template:
+            return Response(
+                data={"message": "Сайт недоступен из-за истекшей подписки"},
+                status=402  # Payment Required
+            )
+
+        return Response(CustomSiteFullSerializer(instance=custom_site).data, status=200)
