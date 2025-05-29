@@ -81,7 +81,7 @@ class ActivationCodeSerializer(Serializer):
         email = data.get('email')
         code = data.get('code')
         password = data.get('password')
-        activation_code = ActivationCode.objects.filter(email=email, expired=False).first()
+        activation_code = ActivationCode.objects.filter(email=email, code=code, expired=False)
         if not activation_code:
             raise ValidationError("Код для этого email не найден.")
 
@@ -89,6 +89,6 @@ class ActivationCodeSerializer(Serializer):
         if activation_code.get_code != code:
             raise ValidationError("Неверный код.")
 
-        CustomUser.objects.create_user(email=email, password=password, activation_code=activation_code)
+        CustomUser.objects.create_user(email=email, password=password)
 
         return data
