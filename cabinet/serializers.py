@@ -86,7 +86,7 @@ class ActivationCodeSerializer(Serializer):
             raise ValidationError("Код для этого email не найден.")
 
         # Проверка кода
-        if activation_code.get_code != code:
+        if activation_code.code != code:
             raise ValidationError("Неверный код.")
 
         CustomUser.objects.create_user(email=email, password=password)
