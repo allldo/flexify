@@ -43,18 +43,13 @@ class RegisterView(APIView):
 
             code = generate_code()
             activation_code, created = ActivationCode.objects.get_or_create(
-                email=email,
-                defaults={'code': code}
+                email=email, expired=False, code=code
             )
 
-            if not created:
-                activation_code.code = code
-                activation_code.expired = False
-                activation_code.save()
 
             send_mail(
                 'Подтверждение регистрации Flexify',
-                f'Ваш код подтверждения: {code}',
+                f'Ваш код подтверждения: {activation_code.code}',
                 settings.DEFAULT_FROM_EMAIL,
                 [email],
                 fail_silently=False,
