@@ -55,7 +55,7 @@ class CustomSiteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomSite
-        fields = ['id', 'name', 'block', 'is_template', 'created_at']
+        fields = ['id', 'name', 'blocks', 'is_template', 'created_at']
 
     def validate_name(self, value):
         name = re.sub(r'[^a-zA-Zа-яА-Я0-9-]', '-', value)
