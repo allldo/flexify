@@ -48,6 +48,8 @@ class CustomSiteViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user, is_published=True)
 class TemplateCustomSiteView(APIView):
 
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
     def post(self, request, *args, **kwargs):
         site_id = request.data.get('site_id')
         template_id = request.data.get('template_id')
@@ -63,6 +65,8 @@ class TemplateCustomSiteView(APIView):
 
 class CustomSiteCopyView(APIView):
 
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
     def post(self, request, *args, **kwargs):
         site_id = request.data.get('site_id')
         if site_id:
@@ -131,11 +135,14 @@ class BlockViewSet(viewsets.ViewSet):
 
 
 class ReArrangeBlocksView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [CustomPermission]
     @extend_schema(
         request=BlockOrderDictSerializer,
         responses={201: BlockSerializer},
         description="Добавление блока"
     )
+
     def post(self, request):
         serializer = BlockOrderDictSerializer(data=request.data)
 
