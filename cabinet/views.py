@@ -78,19 +78,18 @@ class VerifyCodeView(APIView):
         if serializer.is_valid():
             email = serializer.validated_data['email']
             code = serializer.validated_data['code']
+            try:
+                activation_code = ActivationCode.objects.get(code=code)
+            except ActivationCode.DoesNotExist:
+                return Response(data={'result': 'Код не существует'}, status=status.HTTP_400_BAD_REQUEST)
+            activation_code.set_code_expired()
 
-            activation_code = ActivationCode.objects.filter(email=email, expired=False).first()
-            if activation_code and activation_code.get_code == code:
-                activation_code.set_code_expired()
+            user = CustomUser.objects.get(email=email)
 
-                user = CustomUser.objects.get(email=email)
+            token, created = Token.objects.get_or_create(user=user)
 
-                token, created = Token.objects.get_or_create(user=user)
+            profile, created = Profile.objects.get_or_create(user=user)
 
-                profile, created = Profile.objects.get_or_create(user=user)
-
-                return Response({"token": token.key}, status=status.HTTP_200_OK)
-
-            return Response({"detail": "Неверный код."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"token": token.key}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
