@@ -21,7 +21,6 @@ from .serializers import (
 
 
 class CustomSiteViewSet(viewsets.ModelViewSet):
-    queryset = CustomSite.objects.all()
     serializer_class = CustomSiteSerializer
     permission_classes = [IsAuthenticated]
     authentication_classes = [TokenAuthentication]
@@ -46,6 +45,10 @@ class CustomSiteViewSet(viewsets.ModelViewSet):
 
         # Если все проверки пройдены, создаем сайт
         serializer.save(user=self.request.user, is_published=True)
+
+    def get_queryset(self):
+        return CustomSite.objects.filter(user=self.request.user)
+
 class TemplateCustomSiteView(APIView):
 
     permission_classes = [IsAuthenticated]
