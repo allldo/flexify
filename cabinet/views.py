@@ -4,6 +4,7 @@ from django.core.mail import send_mail
 from django.shortcuts import render
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -19,6 +20,7 @@ from sales.tasks import create_default_trial_subscription
 class ProfileView(APIView):
     """Представление для профиля пользователя"""
     permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
 
     def get(self, request):
         profile = Profile.objects.get(user=request.user)
