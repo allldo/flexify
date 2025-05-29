@@ -83,6 +83,7 @@ class VerifyCodeView(APIView):
             except ActivationCode.DoesNotExist:
                 return Response(data={'result': 'Код не существует'}, status=status.HTTP_400_BAD_REQUEST)
             activation_code.set_code_expired()
+            ActivationCode.objects.filter(email=email).update(expired=True)
 
             user = CustomUser.objects.get(email=email)
 
