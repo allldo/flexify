@@ -51,7 +51,7 @@ class BlockSerializer(serializers.ModelSerializer):
 
 
 class CustomSiteSerializer(serializers.ModelSerializer):
-    blocks = BlockSerializer(many=True)
+    blocks = BlockSerializer(many=True, read_only=True)
 
     class Meta:
         model = CustomSite
