@@ -14,6 +14,7 @@ from cabinet.models import Profile, ActivationCode, CustomUser
 from cabinet.serializers import ProfileSerializer, ActivationCodeSerializer, RegisterSerializer, LoginSerializer
 from cabinet.service import generate_code
 from constructor.models import CustomSite
+from sales.models import SubscriptionPlan
 from sales.tasks import create_default_trial_subscription
 
 
@@ -92,6 +93,10 @@ class VerifyCodeView(APIView):
             token, created = Token.objects.get_or_create(user=user)
 
             profile, created = Profile.objects.get_or_create(user=user)
+
+            if created:
+                profile.subscription_plan = SubscriptionPlan.objects.get(is_trial=True)
+                profile.save()
 
             return Response({"token": token.key}, status=status.HTTP_200_OK)
 

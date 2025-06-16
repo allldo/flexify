@@ -19,4 +19,4 @@ class SubscriptionPlan(Model):
     max_sites = PositiveIntegerField(default=1, verbose_name='Максимальное количество сайтов')
 
     def __str__(self):
-        return self.name
+        return f"{self.name} {self.price} {self.period}"

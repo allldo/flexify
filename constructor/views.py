@@ -1,12 +1,8 @@
-import base64
-import os
 
-from django.conf import settings
 from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.utils import extend_schema
 from rest_framework import status, viewsets
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -16,7 +12,7 @@ from cabinet.models import Profile
 from .models import CustomSite, Block
 from .permissions import CustomPermission, IsSiteOwnerPermission
 from .serializers import (
-    CustomSiteSerializer, BlockSerializer, CustomSiteFullSerializer, BlockOrderDictSerializer
+    CustomSiteSerializer, BlockSerializer, CustomSiteFullSerializer, BlockOrderDictSerializer, ThemeChangeSerializer
 )
 
 
@@ -180,3 +176,21 @@ class PublicSiteView(APIView):
             )
 
         return Response(CustomSiteFullSerializer(instance=custom_site).data, status=200)
+
+
+class ThemeChangeAPIView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsSiteOwnerPermission]
+
+    @extend_schema(request=ThemeChangeSerializer)
+    def post(self, request, site_id):
+        serialized = ThemeChangeSerializer(request.data)
+        if serialized.is_valid():
+            theme = serialized.theme
+            site = CustomSite.objects.get(id=site_id)
+            site.theme = theme
+            site.save()
+
+            return Response(data={"success": "Theme changed successfully"}, status=200)
+
+        return Response(data={"error": serialized.errors}, status=400)

@@ -26,7 +26,9 @@ class Profile(Model):
     is_active = BooleanField(default=True, help_text='Активна ли подписка')
 
     def __str__(self):
-        return f"Profile of {self.user.phone_number}"
+        if self.user.phone_number:
+            return f"Profile of {self.user.phone_number}"
+        return f"Profile of {self.user.email}"
 
     def save(self, *args, **kwargs):
         # Если назначен план подписки и нет даты окончания

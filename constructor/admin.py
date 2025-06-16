@@ -99,7 +99,7 @@ class CustomSiteAdmin(admin.ModelAdmin):
     filter_horizontal = ('blocks',)
     fieldsets = (
         ('Basic Information', {
-            'fields': ('name', 'user', 'is_template', 'is_published', 'created_at')
+            'fields': ('name', 'user', 'is_template', 'is_published', 'created_at', 'theme')
         }),
         ('QR Code', {
             'fields': ('qr_code', 'qr_code_display', 'site_url'),

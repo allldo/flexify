@@ -13,6 +13,7 @@ class CustomSite(Model):
     template = ForeignKey('self', on_delete=SET_NULL, null=True, blank=True, related_name='derived_sites')
     qr_code = ImageField(upload_to='qr_codes/', blank=True, null=True, verbose_name='QR код')
     is_published = BooleanField(default=False)
+    theme = CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
         return self.name

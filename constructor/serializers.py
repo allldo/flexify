@@ -3,7 +3,8 @@ import re
 from django.conf import settings
 from django.core.files.storage import default_storage
 from rest_framework import serializers
-from rest_framework.fields import ImageField
+from rest_framework.fields import ImageField, CharField
+from rest_framework.serializers import Serializer
 
 from .models import (
     CustomSite, Block,
@@ -55,7 +56,7 @@ class CustomSiteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomSite
-        fields = ['id', 'name', 'blocks', 'is_template', 'created_at']
+        fields = ['id', 'name', 'blocks', 'is_template', 'created_at', 'theme']
 
     def validate_name(self, value):
         name = re.sub(r'[^a-zA-Zа-яА-Я0-9-]', '-', value)
@@ -70,7 +71,7 @@ class CustomSiteFullSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomSite
-        fields = ['id', 'name', 'blocks','is_template', 'created_at']
+        fields = ['id', 'name', 'blocks','is_template', 'created_at', 'theme']
 
 
 class BlockOrderDictSerializer(serializers.Serializer):
@@ -96,3 +97,6 @@ class BlockOrderDictSerializer(serializers.Serializer):
             updated_blocks.append(block)
         return updated_blocks
 
+
+class ThemeChangeSerializer(Serializer):
+    theme = CharField()
