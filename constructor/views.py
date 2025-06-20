@@ -187,7 +187,7 @@ class ThemeChangeAPIView(APIView):
         serialized = ThemeChangeSerializer(data=request.data)
         if serialized.is_valid():
             serializer = serialized.validated_data
-            theme = serializer.theme
+            theme = serializer.get("theme")
             site = CustomSite.objects.get(id=site_id)
             site.theme = theme
             site.save()
