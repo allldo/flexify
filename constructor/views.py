@@ -135,7 +135,8 @@ class BlockViewSet(viewsets.ViewSet):
 
 class ReArrangeBlocksView(APIView):
     authentication_classes = [TokenAuthentication]
-    permission_classes = [CustomPermission]
+    # TODO !
+    permission_classes = [IsAuthenticated]
     @extend_schema(
         request=BlockOrderDictSerializer,
         responses={201: BlockSerializer},
