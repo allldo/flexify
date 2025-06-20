@@ -184,7 +184,7 @@ class ThemeChangeAPIView(APIView):
 
     @extend_schema(request=ThemeChangeSerializer)
     def post(self, request, site_id):
-        serialized = ThemeChangeSerializer(request.data)
+        serialized = ThemeChangeSerializer(data=request.data)
         if serialized.is_valid():
             theme = serialized.theme
             site = CustomSite.objects.get(id=site_id)
